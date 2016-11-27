@@ -1,0 +1,6 @@
+*.java
+*.class
+*.dex
+*.txt
+*.pyc
+.idea/
