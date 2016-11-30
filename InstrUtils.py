@@ -334,22 +334,22 @@ def dexDecodeInstruction(dexFile, dexCode, offset):
         if opcode == 0x1a:
             op = 'const-string'
             indexType = 'string'
-            indexStr = dexFile.DexStringIdList[int(BBBB, 16)]
+            indexStr = dexFile.getDexStringId(int(BBBB, 16))
         # (2) opcode=1c const-class vAA, type@BBBB
         if opcode == 0x1c:
             op = 'const-class'
             indexType = 'type'
-            indexStr = dexFile.DexTypeIdList[int(BBBB, 16)]
+            indexStr = dexFile.getDexTypeId(int(BBBB, 16))
         # (3) opcode=1f check-cast vAA, type@BBBB
         if opcode == 0x1f:
             op = 'check-cast'
             indexType = 'type'
-            indexStr = dexFile.DexTypeIdList[int(BBBB, 16)]
+            indexStr = dexFile.getDexTypeId(int(BBBB, 16))
         # (4) opcode=22 new-instance vAA, type@BBBB
         if opcode == 0x22:
             op = 'new-instance'
             indexType = 'type'
-            indexStr = dexFile.DexTypeIdList[int(BBBB, 16)]
+            indexStr = dexFile.getDexTypeId(int(BBBB, 16))
         # (5) opcode=60..6d sstaticop vAA, field@BBBB
         if opcode >= 0x60 and opcode <=0x6d:
             sstaticop = ['sget', 'sget-wide', 'sget-object', 'sget-boolean', 'sget-byte', 'sget-char',
@@ -357,8 +357,8 @@ def dexDecodeInstruction(dexFile, dexCode, offset):
                          'sput-byte', 'sput-char', 'sput-short']
             op = sstaticop[opcode - 0x60]
             indexType = 'field'
-            classIdx, typeIdx, nameIdx = dexFile.DexFieldIdList[int(BBBB, 16)]
-            indexStr = classIdx + '.' + nameIdx + ':' + typeIdx
+            dexFieldIdObj = dexFile.DexFieldIdList[int(BBBB, 16)]
+            indexStr = dexFieldIdObj.toString(dexFile)
 
         decodedInstruction.op = op
         decodedInstruction.vA = AA
@@ -485,8 +485,8 @@ def dexDecodeInstruction(dexFile, dexCode, offset):
                            'iput', 'iput-wide', 'iput-object', 'iput-boolean', 'iput-byte', 'iput-char', 'put-short']
             op = iinstanceop[opcode - 0x52]
             indexType = 'field'
-            classIdx, typeIdx, nameIdx = dexFile.DexFieldIdList[int(CCCC, 16)]
-            indexStr = classIdx + '.' + nameIdx + ':' + typeIdx
+            dexFieldIdObj = dexFile.DexFieldIdList[int(CCCC, 16)]
+            indexStr = dexFieldIdObj.toString(dexFile)
 
         decodedInstruction.op = op
         decodedInstruction.vA = A
@@ -628,8 +628,8 @@ def dexDecodeInstruction(dexFile, dexCode, offset):
             invoke_kind = ['invoke-virtual', 'invoke-super', 'invoke-direct', 'invoke-static', 'invoke-interface']
             op = invoke_kind[opcode-0x6e]
             indexType = 'method'
-            classIdx, protoIdx, nameIdx = dexFile.DexMethodIdList[int(BBBB, 16)]
-            indexStr = classIdx + '.' + nameIdx + ':' + protoIdx
+            dexMethodIdObj = dexFile.DexMethodIdList[int(BBBB, 16)]
+            indexStr = dexMethodIdObj.toString(dexFile)
 
         registers = None
         if A == 0:  # [A=0] op {}, kind@BBBB
