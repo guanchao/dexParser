@@ -732,8 +732,8 @@ def dexDecodeInstruction(dexFile, dexCode, offset):
             ops = ['invoke-virtual/range', 'invoke-super/range', 'invoke-direct/range', 'invoke-static/range', 'invoke-intenrface/range']
             op = ops[opcode - 0x74]
             indexType = 'method'
-            classIdx, protoIdx, nameIdx = dexFile.DexMethodIdList[int(BBBB, 16)]
-            indexStr = classIdx + '.' + nameIdx + ':' + protoIdx
+            dexMethodIdObj = dexFile.DexMethodIdList[int(BBBB, 16)]
+            indexStr = dexMethodIdObj.toString(dexFile)
 
         registers = ''
         for i in range(N):
