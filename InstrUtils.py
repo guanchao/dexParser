@@ -63,8 +63,6 @@ def dexDecodeInstruction(dexFile, dexCode, offset):
 
     decodedInstruction.opcode = opcode
 
-    # print 'opcode:',hex(opcode), formatIns, syntax
-    # print ''
     if formatIns == '10x':
         # Format: 00|op <=> op
         # (1) opcode=00 nop

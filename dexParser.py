@@ -81,6 +81,7 @@ class DexFile(object):
         self.init_DexProtoId() # 初始化DexProtoId index table
         self.int_DexFieldId() # 初始化DexFieldId index table
         self.init_DexMethodId() # 初始化DexMethodId index table
+        self.init_DexClassDef() # 初始化DexClassDef类定义区
 
 
     def init_header(self, filepath):
@@ -306,6 +307,8 @@ class DexFile(object):
             dexProtoIdObj.shortyIdx = shortyIdx
             dexProtoIdObj.returnTypeIdx = returnTypeIdx
             dexProtoIdObj.parameterOff = parametersOff
+            dexProtoIdObj.offset = proto_ids_off_int + index * 12
+            dexProtoIdObj.length = 12
 
             if parametersOff == 0:
                 dexProtoIdObj.dexTypeList = None
@@ -348,20 +351,14 @@ class DexFile(object):
         print '[+] DexProtoId:'
         for index in range(len(self.DexProtoIdList)):
             dexProtoidObj = self.DexProtoIdList[index]
-            # shortyIdx, returnTypeIdx, parametersOff_hex, parameters = self.DexProtoIdList[index]
 
             shortyIdxStr = self.getDexStringId(dexProtoidObj.shortyIdx)
             returnTypeIdxStr = self.getDexStringId(dexProtoidObj.returnTypeIdx)
 
-
-            shortyIdxInsns = binascii.b2a_hex(self.DexHeader.f.read(4))
-            returnTypeIdxInsns = binascii.b2a_hex(self.DexHeader.f.read(4))
-            parametersOffInsns = binascii.b2a_hex(self.DexHeader.f.read(4))
-
-            print '    #%s (%s~%s)' % (hex(index), hex(proto_ids_off_int+index*4), hex(proto_ids_off_int+(index+1)*4))
-            print '    %s | DexProtoId[%d]->shortyIdx= %s\t#%s' % (shortyIdxInsns, index,hex(dexProtoidObj.shortyIdx), shortyIdxStr)
-            print '    %s | DexProtoId[%d]->returnTypeIdx= %s\t#%s' % (returnTypeIdxInsns, index, hex(dexProtoidObj.returnTypeIdx), returnTypeIdxStr)
-            print '    %s | DexProtoId[%d]->parametersOff= %s' % (parametersOffInsns, index, hex(dexProtoidObj.parameterOff))
+            print '    #%s (%s~%s)' % (hex(index), hex(dexProtoidObj.offset), hex(dexProtoidObj.offset + dexProtoidObj.length))
+            print '    DexProtoId[%d]->shortyIdx= %s\t#%s' % (index,hex(dexProtoidObj.shortyIdx), shortyIdxStr)
+            print '    DexProtoId[%d]->returnTypeIdx= %s\t#%s' % (index, hex(dexProtoidObj.returnTypeIdx), returnTypeIdxStr)
+            print '    DexProtoId[%d]->parametersOff= %s' % (index, hex(dexProtoidObj.parameterOff))
             if dexProtoidObj.dexTypeList:
                 print '      DexTypeList->size= %s' % hex(dexProtoidObj.dexTypeList.size)
                 for k in range(dexProtoidObj.dexTypeList.size):
@@ -390,28 +387,24 @@ class DexFile(object):
             dexFieldIdObj.classIdx = classIdx
             dexFieldIdObj.typeIdx = typeIdx
             dexFieldIdObj.nameIdx = nameIdx
+            dexFieldIdObj.offset = field_ids_off + index * 8
+            dexFieldIdObj.length = 8
 
             self.DexFieldIdList.append(dexFieldIdObj)
 
     def print_DexFieldId(self):
-        field_ids_off = int(self.DexHeader.field_ids_off, 16)
-        field_ids_size = int(self.DexHeader.field_ids_size, 16)
-
-        self.DexHeader.f.seek(field_ids_off, 0)
         print '[+] DexFieldId:'
-        for index in range(field_ids_size):
+        for index in range(len(self.DexFieldIdList)):
+            self.DexHeader.f.seek(self.DexFieldIdList[index].offset, 0)
             # DexFieldId
             # u2 classIdx
-            classIdx_hex = binascii.b2a_hex(self.DexHeader.f.read(2)).decode('hex')[::-1].encode('hex')
-            classIdx = int(classIdx_hex, 16)
+            classIdx = self.DexFieldIdList[index].classIdx
             # u2 typeIdx
-            typeIdx_hex = binascii.b2a_hex(self.DexHeader.f.read(2)).decode('hex')[::-1].encode('hex')
-            typeIdx = int(typeIdx_hex, 16)
+            typeIdx = self.DexFieldIdList[index].typeIdx
             # u4 nameIdx
-            nameIdx_hex = binascii.b2a_hex(self.DexHeader.f.read(4)).decode('hex')[::-1].encode('hex')
-            nameIdx = int(nameIdx_hex, 16)
+            nameIdx = self.DexFieldIdList[index].nameIdx
 
-            print '    #%s (%s~%s)' % (hex(index), hex(field_ids_off + index*8), hex(field_ids_off + index*8 + 7))
+            print '    #%s (%s~%s)' % (hex(index), hex(self.DexFieldIdList[index].offset), hex(self.DexFieldIdList[index].offset + self.DexFieldIdList[index].length))
             print '    DexFieldId[%d]->classIdx=%s\t#%s' % (index, hex(classIdx), self.getDexStringId(classIdx))
             print '    DexFieldId[%d]->typeIdx=%s\t#%s' % (index, hex(typeIdx), self.getDexStringId(typeIdx))
             print '    DexFieldId[%d]->nameIdx=%s\t#%s' % (index, hex(nameIdx), self.getDexStringId(nameIdx))
@@ -439,36 +432,29 @@ class DexFile(object):
             dexMethodIdObj.classIdx = classIdx
             dexMethodIdObj.protoIdx = protoIdx
             dexMethodIdObj.nameIdx = nameIdx
+            dexMethodIdObj.offset = method_ids_off + index * 8
+            dexMethodIdObj.length = 8
 
             self.DexMethodIdList.append(dexMethodIdObj)
 
     def print_DexMethodId(self):
-        method_ids_off = int(self.DexHeader.method_ids_off, 16)
-        method_ids_size = int(self.DexHeader.method_ids_size, 16)
 
-        self.DexHeader.f.seek(method_ids_off, 0)
-        print '\n'
-        print '[+] DexMethodId:'
-
-        for index in range(method_ids_size):
+        for index in range(len(self.DexMethodIdList)):
             # DexMethodId
             # u2 classIdx
-            classIdx_hex = binascii.b2a_hex(self.DexHeader.f.read(2)).decode('hex')[::-1].encode('hex')
-            classIdx = int(classIdx_hex, 16)
+            classIdx = self.DexMethodIdList[index].classIdx
             # u2 protoIdx
-            protoIdx_hex = binascii.b2a_hex(self.DexHeader.f.read(2)).decode('hex')[::-1].encode('hex')
-            protoIdx = int(protoIdx_hex, 16)
+            protoIdx = self.DexMethodIdList[index].protoIdx
             # u4 nameIdx
-            nameIdx_hex = binascii.b2a_hex(self.DexHeader.f.read(4)).decode('hex')[::-1].encode('hex')
-            nameIdx = int(nameIdx_hex, 16)
+            nameIdx = self.DexMethodIdList[index].nameIdx
 
-            print '    #%s (%s~%s)' % (hex(index), hex(method_ids_off + index*8), hex(method_ids_off + index*8 + 7))
+            print '    #%s (%s~%s)' % (hex(index), hex(self.DexMethodIdList[index].offset), hex(self.DexMethodIdList[index].offset + self.DexMethodIdList[index].length))
             print '    DexMethodId[%d]->classIdx=%s\t#%s' % (index, hex(classIdx), self.getDexTypeId(classIdx))
             print '    DexMethodId[%d]->protoIdx=%s\t#%s' % (index, hex(protoIdx), self.DexProtoIdList[protoIdx].toString(self))
             print '    DexMethodId[%d]->nameIdx =%s\t#%s' % (index, hex(nameIdx), self.DexStringIdList[nameIdx])
             print ''
 
-    def print_DexClassDef(self):
+    def init_DexClassDef(self):
         class_defs_size_int = int(self.DexHeader.class_defs_size, 16)
         class_defs_off_int = int(self.DexHeader.class_defs_off, 16)
 
@@ -524,40 +510,26 @@ class DexFile(object):
             dexClassDefObj.annotationsOff = annotationsOff
             dexClassDefObj.classDataOff = classDataOff
             dexClassDefObj.staticValueOff = staticValueOff
-
-            if classDataOff == 0x0:
-                print '\n'
-                print '[+] #%s~%s' % (hex(class_defs_off_int + index * 32), hex(class_defs_off_int + index * 32 + 31))
-                print '    DexClassDef[%d]:\t' % index
-                print '    DexClassDef[%d]->classIdx\t= %s\t#%s' % (
-                    index, hex(dexClassDefObj.classIdx), self.DexTypeIdList[dexClassDefObj.classIdx])
-                print '    DexClassDef[%d]->accessFlags\t= %s' % (index, hex(dexClassDefObj.accessFlags))
-                print '    DexClassDef[%d]->superclassIdx\t= %s\t#%s' % (
-                    index, hex(dexClassDefObj.superclassIdx), self.DexTypeIdList[dexClassDefObj.superclassIdx])
-                print '    DexClassDef[%d]->interfaceOff\t= %s' % (index, hex(dexClassDefObj.interfaceOff))
-                if dexClassDefObj.sourceFieldIdx == 0xffffffff:
-                    print '    DexClassDef[%d]->sourceFieldIdx\t= %s\t#UNKNOWN' % (
-                        index, hex(dexClassDefObj.sourceFieldIdx))
-                else:
-                    print '    DexClassDef[%d]->sourceFieldIdx\t= %s\t#%s' % (
-                        index, hex(dexClassDefObj.sourceFieldIdx), self.DexStringIdList[dexClassDefObj.sourceFieldIdx])
-                print '    DexClassDef[%d]->annotationsOff\t= %s' % (index, hex(dexClassDefObj.annotationsOff))
-                print '    DexClassDef[%d]->classDataOff\t= %s' % (index, hex(classDataOff))
-                print '    DexClassDef[%d]->staticValueOff\t= %s' % (index, hex(staticValueOff))
-                continue
+            dexClassDefObj.offset = class_defs_off_int + index * 32
+            dexClassDefObj.length = 32
 
             # 获取DexClassData结构
             ######################################################
+            dexClassDataHeaderOffset = classDataOff
+            dexClassDataHeaderLength = 0
+
             # 解析DexClassData结构体中header成员
             self.DexHeader.f.seek(classDataOff, 0)
             dexClassDataHeader = []
             for i in range(4):
                 cur_bytes_hex = binascii.b2a_hex(self.DexHeader.f.read(1))
+                dexClassDataHeaderLength += 1
                 cur_bytes = int(cur_bytes_hex, 16)
                 value = cur_bytes_hex
 
                 while cur_bytes > 0x7f:
                     cur_bytes_hex = binascii.b2a_hex(self.DexHeader.f.read(1))
+                    dexClassDataHeaderLength += 1
                     value += cur_bytes_hex
                     cur_bytes = int(cur_bytes_hex, 16)
                 dexClassDataHeader.append(value)
@@ -571,10 +543,13 @@ class DexFile(object):
             dexClassDataHeader.instanceFieldsSize = instanceFieldsSize
             dexClassDataHeader.directMethodsSize = directMethodsSize
             dexClassDataHeader.virtualMethodsSize = virtualMethodsSize
+            dexClassDataHeader.offset = classDataOff
+            dexClassDataHeader.length = dexClassDataHeaderLength
 
             dexClassDefObj.header = dexClassDataHeader
 
             # 解析DexClassData结构体中staticFields、instanceFields、directMethods和virtualMethods成员
+            offset = dexClassDataHeader.offset + dexClassDataHeader.length
             # (1)解析DexField* staticFields成员
             """
             struct DexField{
@@ -584,13 +559,18 @@ class DexFile(object):
             """
             for i in range(staticFieldsSize):
                 array = []
+                length = 0
                 for j in range(2):
                     cur_bytes_hex = binascii.b2a_hex(self.DexHeader.f.read(1))
+                    length += 1
+
                     cur_bytes = int(cur_bytes_hex, 16)
                     value = cur_bytes_hex
 
                     while cur_bytes > 0x7f:
                         cur_bytes_hex = binascii.b2a_hex(self.DexHeader.f.read(1))
+                        length += 1
+
                         cur_bytes = int(cur_bytes_hex, 16)
                         value += cur_bytes_hex
 
@@ -599,19 +579,28 @@ class DexFile(object):
                 dexField = DexField()
                 dexField.fieldIdx = self.readUnsignedLeb128(array[0])
                 dexField.accessFlags = self.readUnsignedLeb128(array[1])
+                dexField.offset = offset
+                dexField.length = length
+
+                offset += length
 
                 dexClassDefObj.staticFields.append(dexField)
 
             # (2)解析DexField* instanceFields成员
             for i in range(instanceFieldsSize):
                 array = []
+                length = 0
                 for j in range(2):
                     cur_bytes_hex = binascii.b2a_hex(self.DexHeader.f.read(1))
+                    length += 1
+
                     cur_bytes = int(cur_bytes_hex, 16)
                     value = cur_bytes_hex
 
                     while cur_bytes > 0x7f:
                         cur_bytes_hex = binascii.b2a_hex(self.DexHeader.f.read(1))
+                        length += 1
+
                         cur_bytes = int(cur_bytes_hex, 16)
                         value += cur_bytes_hex
 
@@ -620,19 +609,28 @@ class DexFile(object):
                 dexField = DexField()
                 dexField.fieldIdx = self.readUnsignedLeb128(array[0])
                 dexField.accessFlags = self.readUnsignedLeb128(array[1])
+                dexField.offset = offset
+                dexField.length = length
+
+                offset += length
 
                 dexClassDefObj.instanceFields.append(dexField)
 
             # (3)解析DexMethod* directMethods成员
             for i in range(directMethodsSize):
                 array = []
+                length = 0
                 for j in range(3):
                     cur_bytes_hex = binascii.b2a_hex(self.DexHeader.f.read(1))
+                    length += 1
+
                     cur_bytes = int(cur_bytes_hex, 16)
                     value = cur_bytes_hex
 
                     while cur_bytes > 0x7f:
                         cur_bytes_hex = binascii.b2a_hex(self.DexHeader.f.read(1))
+                        length += 1
+
                         cur_bytes = int(cur_bytes_hex, 16)
                         value += cur_bytes_hex
 
@@ -642,19 +640,28 @@ class DexFile(object):
                 dexMethod.methodIdx = self.readUnsignedLeb128(array[0])
                 dexMethod.accessFlags = self.readUnsignedLeb128(array[1])
                 dexMethod.codeOff = self.readUnsignedLeb128(array[2])
+                dexMethod.offset = offset
+                dexMethod.length = length
+
+                offset += length
 
                 dexClassDefObj.directMethods.append(dexMethod)
 
             # (4)解析DexMethod* virtualMethods成员
             for i in range(virtualMethodsSize):
                 array = []
+                length = 0
                 for j in range(3):
                     cur_bytes_hex = binascii.b2a_hex(self.DexHeader.f.read(1))
+                    length += 1
+
                     cur_bytes = int(cur_bytes_hex, 16)
                     value = cur_bytes_hex
 
                     while cur_bytes > 0x7f:
                         cur_bytes_hex = binascii.b2a_hex(self.DexHeader.f.read(1))
+                        length += 1
+
                         cur_bytes = int(cur_bytes_hex, 16)
                         value += cur_bytes_hex
 
@@ -664,6 +671,10 @@ class DexFile(object):
                 dexMethod.methodIdx = self.readUnsignedLeb128(array[0])
                 dexMethod.accessFlags = self.readUnsignedLeb128(array[1])
                 dexMethod.codeOff = self.readUnsignedLeb128(array[2])
+                dexMethod.offset = offset
+                dexMethod.length = length
+
+                offset += length
 
                 dexClassDefObj.virtualMethods.append(dexMethod)
             ######################################################
@@ -685,8 +696,14 @@ class DexFile(object):
                 else:
                     dexMethod.dexCode = None
 
+    def print_DexClassDef(self):
+        print '\n'
+        print '[+] DexMethodId:'
+
+        for index in range(len(self.dexClassDefList)):
+            dexClassDefObj = self.dexClassDefList[index]
             print '\n'
-            print '[+] #%s~%s' % (hex(class_defs_off_int + index*32), hex(class_defs_off_int + index*32 + 31))
+            print '[+] #%s~%s' % (hex(dexClassDefObj.offset), hex(dexClassDefObj.offset + dexClassDefObj.length))
             print '    DexClassDef[%d]:\t' % index
             print '    DexClassDef[%d]->classIdx\t= %s\t#%s' % (index, hex(dexClassDefObj.classIdx), self.DexTypeIdList[dexClassDefObj.classIdx])
             print '    DexClassDef[%d]->accessFlags\t= %s' % (index, hex(dexClassDefObj.accessFlags) )
@@ -697,14 +714,23 @@ class DexFile(object):
             else:
                 print '    DexClassDef[%d]->sourceFieldIdx\t= %s\t#%s' % (index, hex(dexClassDefObj.sourceFieldIdx), self.DexStringIdList[dexClassDefObj.sourceFieldIdx])
             print '    DexClassDef[%d]->annotationsOff\t= %s' % (index, hex(dexClassDefObj.annotationsOff))
-            print '    DexClassDef[%d]->classDataOff\t= %s' % (index, hex(classDataOff))
-            print '    DexClassDef[%d]->staticValueOff\t= %s' % (index, hex(staticValueOff))
+            print '    DexClassDef[%d]->classDataOff\t= %s' % (index, hex(dexClassDefObj.classDataOff))
+            print '    DexClassDef[%d]->staticValueOff\t= %s' % (index, hex(dexClassDefObj.staticValueOff))
+            if dexClassDefObj.classDataOff == 0:
+                continue
             print '    ------------------------------------------------------------------------'
+            print '    # %s~%s' % (hex(dexClassDefObj.header.offset), hex(dexClassDefObj.header.offset + dexClassDefObj.header.length))
             print '    DexClassDef[%d]->DexClassData->DexClassDataHeader->staticFieldsSize \t= %s' % (index, hex(dexClassDefObj.header.staticFieldsSize))
             print '    DexClassDef[%d]->DexClassData->DexClassDataHeader->instanceFieldsSize \t= %s' % (index, hex(dexClassDefObj.header.instanceFieldsSize))
             print '    DexClassDef[%d]->DexClassData->DexClassDataHeader->directMethodsSize \t= %s' % (index, hex(dexClassDefObj.header.directMethodsSize))
             print '    DexClassDef[%d]->DexClassData->DexClassDataHeader->virtualMethodsSize \t= %s' % (index, hex(dexClassDefObj.header.virtualMethodsSize))
-            print '    ------------------------------------------------------------------------'
+            if len(dexClassDefObj.staticFields) > 0:
+                print '    ------------------------------------------------------------------------'
+                print '    # %s~%s' % (hex(dexClassDefObj.staticFields[0].offset), hex(dexClassDefObj.staticFields[-1].offset + dexClassDefObj.staticFields[-1].length))
+            if len(dexClassDefObj.staticFields) < 0 and len(dexClassDefObj.instanceFields) > 0:
+                print '    ------------------------------------------------------------------------'
+                print '    # %s~%s' % (hex(dexClassDefObj.instanceFields[0].offset), hex(
+                    dexClassDefObj.instanceFields[-1].offset + dexClassDefObj.instanceFields[-1].length))
             lastFieldIdx = 0
             for k in range(len(dexClassDefObj.staticFields)):
                 currFieldIdx = lastFieldIdx + dexClassDefObj.staticFields[k].fieldIdx
@@ -718,24 +744,26 @@ class DexFile(object):
                 fieldName = self.getDexStringId(self.DexFieldIdList[currFieldIdx].nameIdx)
                 lastFieldIdx = currFieldIdx
                 print '    DexClassDef[%d]->DexClassData->instanceFields[%d]\t= %s\t#%s' % (index, k, fieldName, dexClassDefObj.instanceFields[k])
-            print '    ------------------------------------------------------------------------'
+
+            if len(dexClassDefObj.staticFields) + len(dexClassDefObj.instanceFields) > 0:
+                print '    ------------------------------------------------------------------------'
 
             lastMethodIdx = 0
             for k in range(len(dexClassDefObj.directMethods)):
                 currMethodIdx = lastMethodIdx + dexClassDefObj.directMethods[k].methodIdx
-
                 dexMethodIdObj = self.DexMethodIdList[currMethodIdx]
                 lastMethodIdx = currMethodIdx
+                print '    # %s~%s' % (hex(dexClassDefObj.directMethods[k].offset), hex(dexClassDefObj.directMethods[k].offset + dexClassDefObj.directMethods[k].length))
                 print '    DexClassDef[%d]->DexClassData->directMethods[%d]\t= %s\t#%s' % (index, k, dexMethodIdObj.toString(self), dexClassDefObj.directMethods[k])
                 self.dumpDexCode(dexClassDefObj.directMethods[k])
                 print '    ------------------------------------------------------------------------'
 
             lastMethodIdx = 0
             for k in range(len(dexClassDefObj.virtualMethods)):
-
                 currMethodIdx = lastMethodIdx + dexClassDefObj.virtualMethods[k].methodIdx
                 dexMethodIdObj = self.DexMethodIdList[currMethodIdx]
                 lastMethodIdx = currMethodIdx
+                print '    # %s~%s' % (hex(dexClassDefObj.virtualMethods[k].offset), hex(dexClassDefObj.virtualMethods[k].offset + dexClassDefObj.virtualMethods[k].length))
                 print '    DexClassDef[%d]->DexClassData->virtualMethods[%d]\t= %s\t#%s' % (index, k, dexMethodIdObj.toString(self), dexClassDefObj.virtualMethods[k])
                 self.dumpDexCode(dexClassDefObj.virtualMethods[k])
                 print '    ------------------------------------------------------------------------'
@@ -743,7 +771,7 @@ class DexFile(object):
     def dumpDexCode(self, dexMethod):
         if dexMethod.dexCode == None:
             return
-
+        print '    # %s~%s' % (hex(dexMethod.dexCode.offset), hex(dexMethod.dexCode.offset + dexMethod.dexCode.length))
         print '    DexCode=%s' % dexMethod.dexCode
         offset = 0
         insnsSize = dexMethod.dexCode.insnsSize * 4
@@ -806,6 +834,9 @@ class DexFile(object):
         dexCode.debugInfoOff = debugInfoOff
         dexCode.insnsSize = insnsSize
         dexCode.insns = insns
+
+        dexCode.offset = codeOff
+        dexCode.length = 16 + len(insns)/2
 
         return dexCode
 
@@ -870,6 +901,10 @@ class DexProtoId(object):
         self.parameterOff = None
         self.dexTypeList = None
 
+        # Address index
+        self.offset = None
+        self.length = 0
+
     def toString(self, dexFile):
         if self.dexTypeList:
             return '%s%s' % (self.dexTypeList.toString(dexFile),  dexFile.getDexTypeId(self.returnTypeIdx))
@@ -896,6 +931,10 @@ class DexMethodId(object):
         self.protoIdx = None
         self.nameIdx = None
 
+        # Address index
+        self.offset = None
+        self.length = 0
+
     def toString(self, dexFile):
         if (self.classIdx != None) and (self.protoIdx != None) and (self.nameIdx != None):
             return '%s.%s:%s' % (dexFile.getDexTypeId(self.classIdx),
@@ -910,6 +949,10 @@ class DexFieldId(object):
         self.classIdx = None
         self.typeIdx = None
         self.nameIdx = None
+
+        # Address index
+        self.offset = None
+        self.length = 0
 
     def toString(self, dexFile):
         if (self.classIdx != None) and (self.typeIdx != None) and (self.nameIdx != None):
@@ -937,6 +980,10 @@ class DexClassDef(object):
         self.directMethods = []
         self.virtualMethods = []
 
+        # Address index
+        self.offset = None
+        self.length = 0
+
 class DexClassDataHeader(object):
     """docstring for ClassName"""
     def __init__(self):
@@ -946,12 +993,20 @@ class DexClassDataHeader(object):
         self.directMethodsSize = None
         self.virtualMethodsSize = None
 
+        # Address index
+        self.offset = None
+        self.length = 0
+
 class DexField(object):
     """docstring for DexField"""
     def __init__(self):
         super(DexField, self).__init__()
         self.fieldIdx = None
         self.accessFlags = None
+
+        # Address index
+        self.offset = None
+        self.length = 0
 
     def __str__(self):
         return '[fieldIdx = %s, accessFlags = %s]' % (hex(self.fieldIdx), hex(self.accessFlags))
@@ -964,6 +1019,10 @@ class DexMethod(object):
         self.methodIdx = None
         self.accessFlags = None
         self.codeOff = None
+
+        # Address index
+        self.offset = None
+        self.length = 0
 
         self.dexCode = DexCode()
 
@@ -982,6 +1041,10 @@ class DexCode(object):
         self.insnsSize = None
         self.insns = None
 
+        # Address index
+        self.offset = None
+        self.length = 0
+
     def __str__(self):
         return '[registersSize = %s, insSize = %s, outsSize = %s, triesSize = %s, debugInfoOff = %s, insnsSize = %s, insns = %s]' % \
                 (self.registersSize, self.insSize, self.outsSize, self.triesSize, hex(self.debugInfoOff), self.insnsSize, self.insns)
@@ -991,13 +1054,11 @@ def main():
     dex = DexFile(sys.argv[1])
     dex.print_header()
     dex.print_DexMapList()
-
     dex.print_DexStringId()
     dex.print_DexTypeId()
     dex.print_DexProtoId()
     dex.print_DexFieldId()
     dex.print_DexMethodId()
-
     dex.print_DexClassDef()
 
 if __name__ == '__main__':
