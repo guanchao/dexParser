@@ -285,7 +285,7 @@ class DexFile(object):
         print '\n'
         print '[+] DexTypeId:'
         for index in range(len(self.DexTypeIdList)):
-            print '    #%s #%s' % (hex(index), self.DexTypeIdList[index])
+            print '    #%s #%s' % (hex(index), self.getDexTypeId(index))
 
     def init_DexProtoId(self):
         proto_ids_size_int = int(self.DexHeader.proto_ids_size, 16)
@@ -333,7 +333,6 @@ class DexFile(object):
                 typeIdx_hex = binascii.b2a_hex(self.DexHeader.f.read(2)).decode('hex')[::-1].encode('hex')
                 typeIdx = int(typeIdx_hex, 16)
                 dexTypeListObj.list.append(typeIdx)
-                # parameter_str = parameter_str + self.DexTypeIdList[typeIdx] + ", "
 
             dexProtoIdObj.dexTypeList = dexTypeListObj
             self.DexProtoIdList.append(dexProtoIdObj)
@@ -512,6 +511,9 @@ class DexFile(object):
             dexClassDefObj.staticValueOff = staticValueOff
             dexClassDefObj.offset = class_defs_off_int + index * 32
             dexClassDefObj.length = 32
+
+            if classDataOff == 0:
+                continue
 
             # 获取DexClassData结构
             ######################################################
@@ -705,9 +707,9 @@ class DexFile(object):
             print '\n'
             print '[+] #%s~%s' % (hex(dexClassDefObj.offset), hex(dexClassDefObj.offset + dexClassDefObj.length))
             print '    DexClassDef[%d]:\t' % index
-            print '    DexClassDef[%d]->classIdx\t= %s\t#%s' % (index, hex(dexClassDefObj.classIdx), self.DexTypeIdList[dexClassDefObj.classIdx])
+            print '    DexClassDef[%d]->classIdx\t= %s\t#%s' % (index, hex(dexClassDefObj.classIdx), self.getDexTypeId(dexClassDefObj.classIdx))
             print '    DexClassDef[%d]->accessFlags\t= %s' % (index, hex(dexClassDefObj.accessFlags) )
-            print '    DexClassDef[%d]->superclassIdx\t= %s\t#%s' % (index, hex(dexClassDefObj.superclassIdx), self.DexTypeIdList[dexClassDefObj.superclassIdx])
+            print '    DexClassDef[%d]->superclassIdx\t= %s\t#%s' % (index, hex(dexClassDefObj.superclassIdx), self.getDexTypeId(dexClassDefObj.superclassIdx))
             print '    DexClassDef[%d]->interfaceOff\t= %s' % (index, hex(dexClassDefObj.interfaceOff))
             if dexClassDefObj.sourceFieldIdx == 0xffffffff:
                 print '    DexClassDef[%d]->sourceFieldIdx\t= %s\t#UNKNOWN' % (index, hex(dexClassDefObj.sourceFieldIdx))
