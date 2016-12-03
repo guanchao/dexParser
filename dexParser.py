@@ -437,7 +437,8 @@ class DexFile(object):
             self.DexMethodIdList.append(dexMethodIdObj)
 
     def print_DexMethodId(self):
-
+        print '\n'
+        print '[+] DexMethodId:'
         for index in range(len(self.DexMethodIdList)):
             # DexMethodId
             # u2 classIdx
@@ -700,12 +701,11 @@ class DexFile(object):
 
     def print_DexClassDef(self):
         print '\n'
-        print '[+] DexMethodId:'
+        print '[+] DexClassDef:'
 
         for index in range(len(self.dexClassDefList)):
             dexClassDefObj = self.dexClassDefList[index]
-            print '\n'
-            print '[+] #%s~%s' % (hex(dexClassDefObj.offset), hex(dexClassDefObj.offset + dexClassDefObj.length))
+            print '    #%s~%s' % (hex(dexClassDefObj.offset), hex(dexClassDefObj.offset + dexClassDefObj.length))
             print '    DexClassDef[%d]:\t' % index
             print '    DexClassDef[%d]->classIdx\t= %s\t#%s' % (index, hex(dexClassDefObj.classIdx), self.getDexTypeId(dexClassDefObj.classIdx))
             print '    DexClassDef[%d]->accessFlags\t= %s' % (index, hex(dexClassDefObj.accessFlags) )
@@ -769,6 +769,7 @@ class DexFile(object):
                 print '    DexClassDef[%d]->DexClassData->virtualMethods[%d]\t= %s\t#%s' % (index, k, dexMethodIdObj.toString(self), dexClassDefObj.virtualMethods[k])
                 self.dumpDexCode(dexClassDefObj.virtualMethods[k])
                 print '    ------------------------------------------------------------------------'
+            print '\n'
 
     def dumpDexCode(self, dexMethod):
         if dexMethod.dexCode == None:
