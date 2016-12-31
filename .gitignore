@@ -4,3 +4,4 @@
 *.txt
 *.pyc
 .idea/
+out/

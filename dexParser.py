@@ -73,7 +73,7 @@ class DexFile(object):
         # 方法索引区
         self.DexMethodIdList = []
         # 类定义区
-        self.dexClassDefList = []
+        self.DexClassDefList = []
 
         self.init_header(self.filepath) # 初始化dex header
         self.init_DexStringId() # 初始化 DexStringId index table
@@ -345,7 +345,7 @@ class DexFile(object):
 
     def print_DexProtoId(self):
         proto_ids_off_int = int(self.DexHeader.proto_ids_off, 16)
-        self.DexHeader.f.seek(proto_ids_off_int, 16)
+        self.DexHeader.f.seek(proto_ids_off_int, 0);
         print '\n'
         print '[+] DexProtoId:'
         for index in range(len(self.DexProtoIdList)):
@@ -460,7 +460,7 @@ class DexFile(object):
 
         for index in range(class_defs_size_int):
             dexClassDefObj = DexClassDef()
-            self.dexClassDefList.append(dexClassDefObj)
+            self.DexClassDefList.append(dexClassDefObj)
 
             #u4 classIdx
             self.DexHeader.f.seek(class_defs_off_int + index*32, 0)
@@ -703,8 +703,8 @@ class DexFile(object):
         print '\n'
         print '[+] DexClassDef:'
 
-        for index in range(len(self.dexClassDefList)):
-            dexClassDefObj = self.dexClassDefList[index]
+        for index in range(len(self.DexClassDefList)):
+            dexClassDefObj = self.DexClassDefList[index]
             print '    #%s~%s' % (hex(dexClassDefObj.offset), hex(dexClassDefObj.offset + dexClassDefObj.length))
             print '    DexClassDef[%d]:\t' % index
             print '    DexClassDef[%d]->classIdx\t= %s\t#%s' % (index, hex(dexClassDefObj.classIdx), self.getDexTypeId(dexClassDefObj.classIdx))
