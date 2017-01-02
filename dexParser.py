@@ -345,7 +345,7 @@ class DexFile(object):
 
     def print_DexProtoId(self):
         proto_ids_off_int = int(self.DexHeader.proto_ids_off, 16)
-        self.DexHeader.f.seek(proto_ids_off_int, 0);
+        self.DexHeader.f.seek(proto_ids_off_int, 0)
         print '\n'
         print '[+] DexProtoId:'
         for index in range(len(self.DexProtoIdList)):
